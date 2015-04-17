@@ -1,2 +1,2 @@
 # xbase4j
-Working with XBase data files in Java (.. comming soon)
+Working with XBase data files in Java (... comming soon)
