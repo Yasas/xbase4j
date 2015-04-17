@@ -1,0 +1,84 @@
+//  private final Map<String, Serializable> mvelCache;
+//  private final Map<String, CompiledTemplate> mvelCache2;
+
+//    this.mvelCache = new HashMap<String, Serializable>();
+//    this.mvelCache2 = new HashMap<String, CompiledTemplate>();
+
+
+//  @Override
+//  public Object evaluate(String expression) throws IOException {
+//    final Map<String, Object> scatter = scatterAsMap();
+//
+//    if (!mvelCache.containsKey(expression)) {
+//      mvelCache.put(expression, MVEL.compileExpression(expression));
+//    }
+//
+//    return MVEL.executeExpression(mvelCache.get(expression), this, new BaseVariableResolverFactory() {
+//      @Override
+//      public VariableResolver createVariable(String name, Object value) {
+//        return new SimpleValueResolver(value);
+//      }
+//
+//      @Override
+//      public VariableResolver createVariable(String name, Object value, Class<?> type) {
+//        return new SimpleValueResolver(value);
+//      }
+//
+//      @Override
+//      public boolean isTarget(String name) {
+//        return scatter.containsKey(name);
+//      }
+//
+//      @Override
+//      public boolean isResolveable(String name) {
+//        if (scatter.containsKey(name)) {
+//          if (!getVariableResolvers().containsKey(name)) {
+//            getVariableResolvers().put(name, createVariable(name, scatter.get(name)));
+//          }
+//
+//          return true;
+//        }
+//
+//        return false;
+//      }
+//    });
+//  }
+
+//  @Override
+//  public String evaluateTemplate(String template) throws IOException {
+//    final Map<String, Object> scatter = scatterAsMap();
+//
+//    if (!mvelCache2.containsKey(template)) {
+//      mvelCache2.put(template, TemplateCompiler.compileTemplate(template));
+//    }
+//
+//    return (String) TemplateRuntime.execute(mvelCache2.get(template), this, new BaseVariableResolverFactory() {
+//      @Override
+//      public VariableResolver createVariable(String name, Object value) {
+//        return new SimpleValueResolver(value);
+//      }
+//
+//      @Override
+//      public VariableResolver createVariable(String name, Object value, Class<?> type) {
+//        return new SimpleValueResolver(value);
+//      }
+//
+//      @Override
+//      public boolean isTarget(String name) {
+//        return scatter.containsKey(name);
+//      }
+//
+//      @Override
+//      public boolean isResolveable(String name) {
+//        if (scatter.containsKey(name)) {
+//          if (!getVariableResolvers().containsKey(name)) {
+//            getVariableResolvers().put(name, createVariable(name, scatter.get(name)));
+//          }
+//
+//          return true;
+//        }
+//
+//        return false;
+//      }
+//    });
+//  }
