@@ -41,8 +41,6 @@ public class Data implements Part.FilePart<Data>, Cursor, Record {
   private DataRecord record;
   private int recordNumber;
 
-  private boolean skipDeleted = false;
-
   public Data(Language language, CharsetDecoder decoder, CharsetEncoder encoder) {
     this.language = language;
     this.decoder = decoder;
@@ -65,7 +63,7 @@ public class Data implements Part.FilePart<Data>, Cursor, Record {
     rafLock.lock(); try {
       hdr = (MappedByteBuffer) raf.getChannel().map(FileChannel.MapMode.READ_WRITE, 0, 0x20).order(ByteOrder.LITTLE_ENDIAN);
 
-      //<editor-fold desc="Nacteni poli">
+      //<editor-fold desc="Retrieve field descriptors">
       final ByteBuffer wrap = ByteBuffer.wrap(new byte[0x20]).order(ByteOrder.LITTLE_ENDIAN);
 
       raf.seek(0x20);
@@ -124,6 +122,16 @@ public class Data implements Part.FilePart<Data>, Cursor, Record {
     }
 
     return this;
+  }
+
+  @Override
+  public boolean isReadonly() {
+    return false;
+  }
+
+  @Override
+  public boolean isExclusive() {
+    return false;
   }
 
   @Override
@@ -193,6 +201,17 @@ public class Data implements Part.FilePart<Data>, Cursor, Record {
   public boolean last() throws IOException {
     return go(getNumberOfRecords() - 1);
   }
+
+  @Override
+  public Record append() throws IOException {
+    raf.setLength(raf.length() + getLengthOfRecord());
+
+    setNumberOfRecords(getNumberOfRecords() + 1);
+
+    last(); undelete();
+
+    return this;
+  }
   //</editor-fold>
 
   //<editor-fold desc="Record">
@@ -217,6 +236,16 @@ public class Data implements Part.FilePart<Data>, Cursor, Record {
   }
 
   @Override
+  public boolean hasValidValue(String fieldName) throws XBaseException {
+    return record.hasValidValue(fieldName);
+  }
+
+  @Override
+  public boolean hasValidValue(int fieldIndex) throws XBaseException {
+    return record.hasValidValue(fieldIndex);
+  }
+
+  @Override
   public Object[] scatter() throws XBaseException {
     return record.scatter();
   }
@@ -234,16 +263,6 @@ public class Data implements Part.FilePart<Data>, Cursor, Record {
   @Override
   public void gatherAsMap(Map<String, Object> values) throws XBaseException {
     record.gatherAsMap(values);
-  }
-
-  @Override
-  public void append(Object[] values) throws XBaseException {
-    record.append(values);
-  }
-
-  @Override
-  public void appendAsMap(Map<String, Object> values) throws XBaseException {
-    record.appendAsMap(values);
   }
 
   @Override
@@ -304,6 +323,10 @@ public class Data implements Part.FilePart<Data>, Cursor, Record {
 
   public int getNumberOfRecords() {
     return (hdr != null) ? hdr.getInt(0x04) : 0;
+  }
+
+  private void setNumberOfRecords(int numberOfRecords) {
+    if (hdr != null) hdr.putInt(0x04, numberOfRecords);
   }
 
   public short getLengthOfHeader() {

@@ -77,7 +77,15 @@ public class XBase {
   }
 
   public XBaseFile open(File file) throws IOException {
-    return new XBaseFile().open(file, false, false);
+    return new XBaseFile(rounding, missingPartPolicy).open(file, false, false);
+  }
+
+  public XBaseFile openReadonly(File file) throws IOException {
+    return new XBaseFile(rounding, missingPartPolicy).open(file, true, false);
+  }
+
+  public XBaseFile openExclusive(File file) throws IOException {
+    return new XBaseFile(rounding, missingPartPolicy).open(file, true, true);
   }
 
   public static FieldFactory fieldFactory(Version version) {
@@ -88,7 +96,7 @@ public class XBase {
     return new FieldBuilder(version);
   }
 
-  public static enum MissingPartPolicy {
+  public enum MissingPartPolicy {
     Ignore, Throw
   }
 }

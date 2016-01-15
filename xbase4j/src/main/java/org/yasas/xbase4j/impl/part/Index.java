@@ -123,6 +123,16 @@ public class Index implements Part.FilePart<Index> {
   }
 
   @Override
+  public boolean isReadonly() {
+    return false;
+  }
+
+  @Override
+  public boolean isExclusive() {
+    return false;
+  }
+
+  @Override
   public FileChannel getChannel() {
     return raf.getChannel();
   }

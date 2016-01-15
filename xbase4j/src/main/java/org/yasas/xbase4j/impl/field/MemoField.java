@@ -51,7 +51,7 @@ public class MemoField extends AbstractField<String> {
         final StringBuilder builder = new StringBuilder(Coders.decodeString(buffer, 0x08, blockSize - 0x08, decoder));
 
         if (length < (blockSize - 0x08)) {
-          return builder.toString();
+          return Strings.trimToNull(builder.toString());
         }
 
         while (builder.length() < length && ((memo.getChannel().size() - memo.getChannel().position()) > (length - builder.length()))) {
@@ -65,7 +65,7 @@ public class MemoField extends AbstractField<String> {
           builder.append(Coders.decodeString(buffer, 0x08, blockSize - 0x08, decoder));
         }
 
-        return builder.toString();
+        return Strings.trimToNull(builder.toString());
       } catch (IOException e) {
         return "<" + String.valueOf(pointer) + ">";
       }

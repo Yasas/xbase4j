@@ -29,6 +29,17 @@ public interface Record {
 
   <T> void setValue(int fieldIndex, T value) throws XBaseException;
 
+  /**
+   * Udelat pres priznaky v DataRecord
+   *
+   * @param fieldName
+   * @return
+   * @throws XBaseException
+   */
+  boolean hasValidValue(String fieldName) throws XBaseException;
+
+  boolean hasValidValue(int fieldIndex) throws XBaseException;
+
   Object[] scatter() throws XBaseException;
 
   Map<String, Object> scatterAsMap() throws XBaseException;
@@ -36,10 +47,6 @@ public interface Record {
   void gather(Object[] values) throws XBaseException;
 
   void gatherAsMap(Map<String, Object> values) throws XBaseException;
-
-  void append(Object[] values) throws XBaseException;
-
-  void appendAsMap(Map<String, Object> values) throws XBaseException;
 
   void delete() throws XBaseException;
 

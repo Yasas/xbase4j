@@ -55,7 +55,7 @@ public class MemoField_dBaseIII extends AbstractField<String> {
 
 //        while (builder.indexOf())
 
-        return builder.toString();
+        return Strings.trimToNull(builder.toString());
       } catch (IOException e) {
         return "<" + String.valueOf(pointer) + ">";
       }

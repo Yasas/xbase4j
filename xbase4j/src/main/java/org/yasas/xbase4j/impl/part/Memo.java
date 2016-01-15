@@ -76,6 +76,16 @@ public class Memo implements Part.FilePart<Memo> {
   }
 
   @Override
+  public boolean isReadonly() {
+    return false;
+  }
+
+  @Override
+  public boolean isExclusive() {
+    return false;
+  }
+
+  @Override
   public FileChannel getChannel() {
     return raf.getChannel();
   }

@@ -34,4 +34,6 @@ public interface Cursor {
   boolean next() throws IOException;
 
   boolean last() throws IOException;
+
+  Record append() throws IOException;
 }

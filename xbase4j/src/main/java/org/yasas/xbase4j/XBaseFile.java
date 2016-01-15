@@ -20,23 +20,34 @@ import org.yasas.xbase4j.api.*;
 import org.yasas.xbase4j.api.meta.*;
 import org.yasas.xbase4j.impl.part.*;
 import org.yasas.xbase4j.util.*;
+import sun.reflect.generics.reflectiveObjects.*;
 
 import java.io.*;
+import java.math.*;
 import java.nio.charset.*;
 import java.util.*;
 
 public class XBaseFile implements Part<XBaseFile>, Cursor, Record {
+  private final RoundingMode roundingMode;
+  private final XBase.MissingPartPolicy missingPartPolicy;
+
   private Language language;
   private Version version;
   private List<Field<?>> fields;
+  private boolean readonly, exclusive;
 
   private Data dbf;
   private Memo fpt;
   private Index cdx;
 
-  public XBaseFile() { }
+  public XBaseFile(RoundingMode rounding, XBase.MissingPartPolicy policy) {
+    this.roundingMode = rounding;
+    this.missingPartPolicy = policy;
+  }
 
   public XBaseFile(Language language, Version version, List<Field<?>> fields) {
+    this(RoundingMode.DOWN, XBase.MissingPartPolicy.Throw);
+
     this.language = language;
     this.version = version;
     this.fields = fields;
@@ -52,11 +63,14 @@ public class XBaseFile implements Part<XBaseFile>, Cursor, Record {
   //<editor-fold desc="Part<XBaseFile>">
   @Override
   public XBaseFile create(File file) throws IOException {
-    return this;
+    throw new NotImplementedException();
   }
 
   @Override
   public XBaseFile open(File file, boolean readonly, boolean exclusively) throws IOException {
+    this.readonly = readonly;
+    this.exclusive = exclusively;
+
     if (file.exists() && file.isFile() && file.canRead()) {
       if (!(readonly || file.canWrite())) {
         throw new IOException("canWrite(dbf) == false");
@@ -91,7 +105,7 @@ public class XBaseFile implements Part<XBaseFile>, Cursor, Record {
       }
       version = dbf.getVersion();
 
-//      if (((Data) dbf).getFlags().contains(Data.Flag.HasCDX)) {
+//      if (dbf.getFlags().contains(Data.Flag.HasCDX)) {
 //        final File cdxFile = new File(Strings.substringBeforeLast(file.getPath(), ".") + ".cdx");
 //
 //        if (cdxFile.exists() && cdxFile.isFile() && cdxFile.canRead()) {
@@ -131,6 +145,16 @@ public class XBaseFile implements Part<XBaseFile>, Cursor, Record {
     if (cdx != null) cdx.closeQuietly();
 
     return this;
+  }
+
+  @Override
+  public boolean isReadonly() {
+    return false;
+  }
+
+  @Override
+  public boolean isExclusive() {
+    return false;
   }
   //</editor-fold>
 
@@ -174,6 +198,11 @@ public class XBaseFile implements Part<XBaseFile>, Cursor, Record {
   public boolean last() throws IOException {
     return dataPart().last();
   }
+
+  @Override
+  public Record append() throws IOException {
+    return dataPart().append();
+  }
   //</editor-fold>
 
   //<editor-fold desc="Record">
@@ -198,6 +227,16 @@ public class XBaseFile implements Part<XBaseFile>, Cursor, Record {
   }
 
   @Override
+  public boolean hasValidValue(String fieldName) throws XBaseException {
+    return dataPart().hasValidValue(fieldName);
+  }
+
+  @Override
+  public boolean hasValidValue(int fieldIndex) throws XBaseException {
+    return dataPart().hasValidValue(fieldIndex);
+  }
+
+  @Override
   public Object[] scatter() throws XBaseException {
     return dataPart().scatter();
   }
@@ -215,16 +254,6 @@ public class XBaseFile implements Part<XBaseFile>, Cursor, Record {
   @Override
   public void gatherAsMap(Map<String, Object> values) throws XBaseException {
     dataPart().gatherAsMap(values);
-  }
-
-  @Override
-  public void append(Object[] values) throws XBaseException {
-    dataPart().append(values);
-  }
-
-  @Override
-  public void appendAsMap(Map<String, Object> values) throws XBaseException {
-    dataPart().appendAsMap(values);
   }
 
   @Override

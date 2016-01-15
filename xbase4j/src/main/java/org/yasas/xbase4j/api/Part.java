@@ -28,6 +28,10 @@ public interface Part<T> {
 
   T closeQuietly();
 
+  boolean isReadonly();
+
+  boolean isExclusive();
+
   interface FilePart<T> extends Part<T> {
     FileChannel getChannel();
   }

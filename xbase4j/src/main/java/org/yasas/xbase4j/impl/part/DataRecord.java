@@ -23,7 +23,9 @@ import java.io.*;
 import java.nio.*;
 import java.nio.channels.*;
 import java.nio.charset.*;
+import java.text.*;
 import java.util.*;
+import java.util.concurrent.atomic.*;
 
 class DataRecord implements Record {
   private final List<Field<?>> fields;
@@ -32,6 +34,7 @@ class DataRecord implements Record {
   private final Map<String, Integer> nameMap;
   private final Map<String, Object> valueMap;
   private final BitSet fieldsRead, fieldsDirty;
+  private final AtomicBoolean metadataDirty;
 
   private Memo memo;
   private ByteBuffer buffer;
@@ -50,6 +53,7 @@ class DataRecord implements Record {
 
     this.fieldsRead = new BitSet(fieldCount);
     this.fieldsDirty = new BitSet(fieldCount);
+    this.metadataDirty = new AtomicBoolean(false);
 
     for (int i = 0; i < fieldCount; i++) {
       nameMap.put(fields.get(i).getName(), i);
@@ -67,7 +71,15 @@ class DataRecord implements Record {
   @Override @SuppressWarnings("unchecked")
   public <T> T getValue(int fieldIndex) throws XBaseException {
     if (!fieldsRead.get(fieldIndex)) {
-      values[fieldIndex] = fields.get(fieldIndex).decode(buffer, memo, decoder); fieldsRead.set(fieldIndex);
+      try {
+        final Field<?> field = fields.get(fieldIndex); {
+          values[fieldIndex] = field.getJavaType().cast(field.decode(buffer, memo, decoder));
+        }
+      } catch (XBaseException.DecoderError | ClassCastException e) {
+        values[fieldIndex] = null;
+      } finally {
+        fieldsRead.set(fieldIndex);
+      }
     }
     return (T) values[fieldIndex];
   }
@@ -85,10 +97,34 @@ class DataRecord implements Record {
   }
 
   @Override
+  public boolean hasValidValue(String fieldName) throws XBaseException {
+    try {
+      getValue(fieldName); return true;
+    } catch (XBaseException e) {
+      if (e.getCause() instanceof ParseException) {
+        return false;
+      }
+      throw e;
+    }
+  }
+
+  @Override
+  public boolean hasValidValue(int fieldIndex) throws XBaseException {
+    try {
+      getValue(fieldIndex); return true;
+    } catch (XBaseException e) {
+      if (e.getCause() instanceof ParseException) {
+        return false;
+      }
+      throw e;
+    }
+  }
+
+  @Override
   public Object[] scatter() throws XBaseException {
     for (int i = 0; i < fields.size(); i++) {
       if (!fieldsRead.get(i)) {
-        getValue(fields.get(i).getName());
+        /*if (hasValidValue(i))*/ getValue(fields.get(i).getName());
       }
     }
     return values;
@@ -102,7 +138,7 @@ class DataRecord implements Record {
       valueMap.put(entry.getKey(), objects[entry.getValue()]);
     }
 
-    return valueMap;
+    return new HashMap<>(valueMap);
   }
 
   @Override
@@ -120,30 +156,20 @@ class DataRecord implements Record {
   }
 
   @Override
-  public void append(Object[] values) throws XBaseException {
-
-  }
-
-  @Override
-  public void appendAsMap(Map<String, Object> values) throws XBaseException {
-
-  }
-
-  @Override
   public void delete() throws XBaseException {
-    buffer.put(0x00, (byte) 0x2A);
+    buffer.put(0x00, (byte) 0x2A); metadataDirty.set(true);
   }
 
   @Override
   public void undelete() throws XBaseException {
-    buffer.put(0x00, (byte) 0x20);
+    buffer.put(0x00, (byte) 0x20); metadataDirty.set(true);
   }
 
   @Override
   public boolean isDeleted() {
     return (buffer.get(0x00) == 0x2A);
   }
-//</editor-fold>
+  //</editor-fold>
 
   //<editor-fold desc="Properties">
   public Memo getMemo() {
@@ -182,7 +208,7 @@ class DataRecord implements Record {
   }
 
   public Record reset() {
-    buffer.clear(); fieldsRead.clear(); fieldsDirty.clear(); Arrays.fill(values, null);
+    buffer.clear(); fieldsRead.clear(); fieldsDirty.clear(); metadataDirty.set(false); Arrays.fill(values, null);
 
     for (String name : nameMap.keySet()) {
       valueMap.put(name, null);
@@ -193,6 +219,6 @@ class DataRecord implements Record {
   //</editor-fold>
 
   public boolean isDirty() {
-    return !fieldsDirty.isEmpty();
+    return metadataDirty.get() || !fieldsDirty.isEmpty();
   }
 }
