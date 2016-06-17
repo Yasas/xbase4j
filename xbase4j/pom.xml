@@ -25,7 +25,7 @@
 
   <artifactId>xbase4j</artifactId>
   <packaging>jar</packaging>
-  <version>2.0.2</version>
+  <version>2.0.4</version>
 
   <name>xbase4j [Core]</name>
 
@@ -61,7 +61,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.3</version>
+        <version>3.5.1</version>
 
         <configuration>
           <debug>true</debug>
@@ -76,7 +76,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
-        <version>2.6</version>
+        <version>3.0.1</version>
 
         <configuration>
           <archive>
@@ -93,7 +93,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-source-plugin</artifactId>
-        <version>2.4</version>
+        <version>3.0.0</version>
 
         <executions>
           <execution>

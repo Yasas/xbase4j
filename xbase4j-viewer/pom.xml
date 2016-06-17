@@ -47,14 +47,14 @@
     <dependency>
       <groupId>org.yasas.xbase4j</groupId>
       <artifactId>xbase4j</artifactId>
-      <version>2.0.1</version>
+      <version>2.0.4</version>
       <scope>compile</scope>
     </dependency>
 
     <dependency>
       <groupId>com.miglayout</groupId>
       <artifactId>miglayout-swing</artifactId>
-      <version>4.2</version>
+      <version>5.0</version>
       <scope>compile</scope>
     </dependency>
     <dependency>
@@ -93,22 +93,22 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.3</version>
+        <version>3.5.1</version>
 
         <configuration>
           <debug>true</debug>
           <encoding>UTF-8</encoding>
           <optimize>true</optimize>
 
-          <source>1.7</source>
-          <target>1.7</target>
+          <source>1.8</source>
+          <target>1.8</target>
         </configuration>
       </plugin>
 
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
-        <version>2.6</version>
+        <version>3.0.1</version>
 
         <configuration>
           <archive>
@@ -130,7 +130,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-source-plugin</artifactId>
-        <version>2.4</version>
+        <version>3.0.0</version>
 
         <executions>
           <execution>
