@@ -2,5 +2,5 @@
 
 Small and fast Java library for working with DBF (X-Base) files.
 * Zero dependencies
-* Using NIO
-* Minimal buffering
+* Designed using NIO with minimal buffering
+* Supports many X-Base formats [FoxBase, FoxPro, dBaseIII, dBaseIV, VisualFoxPro]
