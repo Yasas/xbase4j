@@ -24,6 +24,9 @@ import java.nio.*;
 import java.nio.channels.*;
 import java.nio.charset.*;
 
+import static java.nio.channels.FileChannel.MapMode.READ_ONLY;
+import static java.nio.channels.FileChannel.MapMode.READ_WRITE;
+
 public class Memo implements Part.FilePart<Memo> {
   private final Version version;
   private final CharsetDecoder decoder;
@@ -46,9 +49,9 @@ public class Memo implements Part.FilePart<Memo> {
   @Override
   public Memo open(File file, boolean readonly, boolean exclusively) throws IOException {
     raf = new RandomAccessFile(
-      file, readonly ? "rs" : "rws"
+      file, readonly ? "r" : "rws"
     );
-    hdr = (MappedByteBuffer) raf.getChannel().map(FileChannel.MapMode.READ_WRITE, 0, 0x200).order(ByteOrder.BIG_ENDIAN);
+    hdr = (MappedByteBuffer) raf.getChannel().map((readonly ? READ_ONLY : READ_WRITE), 0, 0x200).order(ByteOrder.BIG_ENDIAN);
 
     return this;
   }

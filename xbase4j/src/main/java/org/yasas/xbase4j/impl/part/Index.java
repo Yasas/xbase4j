@@ -46,7 +46,7 @@ public class Index implements Part.FilePart<Index> {
   @Override
   public Index open(File file, boolean readonly, boolean exclusively) throws IOException {
     raf = new RandomAccessFile(
-      file, readonly ? "rs" : "rws"
+      file, readonly ? "r" : "rws"
     );
     hdr = (MappedByteBuffer) raf.getChannel().map(FileChannel.MapMode.READ_WRITE, 0, 0x400).order(ByteOrder.LITTLE_ENDIAN);
 

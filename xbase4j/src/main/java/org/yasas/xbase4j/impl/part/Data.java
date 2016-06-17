@@ -28,6 +28,8 @@ import java.nio.charset.*;
 import java.util.*;
 import java.util.concurrent.locks.*;
 
+import static java.nio.channels.FileChannel.MapMode.*;
+
 public class Data implements Part.FilePart<Data>, Cursor, Record {
   private final Language language;
   private final CharsetDecoder decoder;
@@ -58,10 +60,10 @@ public class Data implements Part.FilePart<Data>, Cursor, Record {
 
   @Override
   public Data open(File file, boolean readonly, boolean exclusively) throws IOException {
-    raf = new RandomAccessFile(file, readonly ? "rs" : "rws");
+    raf = new RandomAccessFile(file, readonly ? "r" : "rws");
 
     rafLock.lock(); try {
-      hdr = (MappedByteBuffer) raf.getChannel().map(FileChannel.MapMode.READ_WRITE, 0, 0x20).order(ByteOrder.LITTLE_ENDIAN);
+      hdr = (MappedByteBuffer) raf.getChannel().map((readonly ? READ_ONLY : READ_WRITE), 0, 0x20).order(ByteOrder.LITTLE_ENDIAN);
 
       //<editor-fold desc="Retrieve field descriptors">
       final ByteBuffer wrap = ByteBuffer.wrap(new byte[0x20]).order(ByteOrder.LITTLE_ENDIAN);
