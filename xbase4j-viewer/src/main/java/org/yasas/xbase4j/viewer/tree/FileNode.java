@@ -16,60 +16,27 @@
 
 package org.yasas.xbase4j.viewer.tree;
 
-import com.alee.utils.*;
-import com.alee.utils.filefilter.*;
-import org.yasas.xbase4j.viewer.*;
-
-import javax.swing.tree.*;
 import java.io.*;
-import java.util.*;
 
-public class FileNode extends DefaultMutableTreeNode {
-  private static final long serialVersionUID = 1134052070383595046L;
+public class FileNode extends FileTreeModel.FilePathNode {
+  private static final long serialVersionUID = - 1872557038108723610L;
 
-  public FileNode(File userObject, boolean allowsChildren) {
+  FileNode(File userObject, boolean allowsChildren) {
     super(userObject, allowsChildren);
-
-    if ((userObject != null) && userObject.isDirectory()) {
-      final File[] files = FileUtils.listFiles(userObject, new CustomFileFilter(Viewer.Utils.icon("database_table.png"), "X-Base files") {
-        @Override
-        public boolean accept(File file) {
-          final String name = file.getName().toLowerCase(); {
-            return file.isDirectory() || (file.isFile() && name.endsWith(".dbf"));
-          }
-        }
-      });
-      Arrays.sort(files, new Comparator<File>() {
-        @Override
-        public int compare(File o1, File o2) {
-          if (o1.isDirectory() && o2.isFile()) {
-            return -1;
-          }
-          if (o1.isFile() && o2.isDirectory()) {
-            return -1;
-          }
-          return o1.getName().toLowerCase().compareTo(o2.getName().toLowerCase());
-        }
-      });
-
-      for (File file : files) {
-        add(new FileNode(file, file.isDirectory()));
-      }
-    }
   }
 
   //<editor-fold desc="Properties">
-  public File getFile() {
+  public File getFilePath() {
     return (File) getUserObject();
   }
 
-  public void setFile(File file) {
-    setUserObject(file);
+  public void setFilePath(File filePath) {
+    setUserObject(filePath);
   }
   //</editor-fold>
 
   @Override
   public boolean isLeaf() {
-    return getFile().isFile();
+    return getFilePath().isFile();
   }
 }

@@ -50,7 +50,6 @@ import javax.swing.table.*;
 import javax.swing.tree.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.beans.*;
 import java.io.*;
 import java.text.*;
 import java.util.*;
@@ -96,6 +95,7 @@ public class Viewer extends WebFrame {
         }
       }
     });
+
     setIconImage(Utils.icon("Basic-data64.png").getImage());
     setDefaultCloseOperation(WebFrame.DISPOSE_ON_CLOSE);
     setLocationByPlatform(true);
@@ -116,12 +116,9 @@ public class Viewer extends WebFrame {
           }
         }, false);
 
-        pathField.addPathFieldListener(new PathFieldListener() {
-          @Override
-          public void directoryChanged(File newDirectory) {
-            synchronized (tableTree.getTreeLock()) {
-              ((FileTreeModel) tableTree.getModel()).setRootFolder(newDirectory); tableTree.expandAll();
-            }
+        pathField.addPathFieldListener(path -> {
+          synchronized (tableTree.getTreeLock()) {
+            ((FileTreeModel) tableTree.getModel()).setRootFolder(path);
           }
         });
       }
@@ -131,7 +128,7 @@ public class Viewer extends WebFrame {
       splitPane = new WebSplitPane(WebSplitPane.HORIZONTAL_SPLIT, true); {
         left = new WebPanel(false, new MigLayout(new LC().fill().insetsAll("0px"), new AC(), new AC())); {
           //<editor-fold desc="TableTree">
-          tableTree = new WebTree<DefaultMutableTreeNode>(); {
+          tableTree = new WebTree<>(); {
             tableTree.setCellRenderer(new DefaultTreeCellRenderer() {
               @Override
               public Component getTreeCellRendererComponent(JTree tree, Object value, boolean sel, boolean expanded, boolean leaf, int row, boolean hasFocus) {
@@ -141,7 +138,7 @@ public class Viewer extends WebFrame {
                   final DefaultMutableTreeNode node = (DefaultMutableTreeNode) value;
 
                   if (node instanceof RootNode) {
-                    final File file = ((RootNode) node).getFolder();
+                    final File file = ((RootNode) node).getFilePath();
 
                     if (file != null) {
                       label.setText(file.getName());
@@ -149,12 +146,12 @@ public class Viewer extends WebFrame {
                       label.setText("< Nothing to show >");
                     }
                   } else if (node instanceof FileNode) {
-                    final File file = ((FileNode) node).getFile();
+                    final File file = ((FileNode) node).getFilePath();
 
                     if (file.isFile()) {
                       label.setIcon(Utils.icon("database_table.png"));
                     }
-                    label.setText(((FileNode) value).getFile().getName());
+                    label.setText(((FileNode) value).getFilePath().getName());
                   }
                 }
 
@@ -169,7 +166,7 @@ public class Viewer extends WebFrame {
                     final DefaultMutableTreeNode node = tableTree.getSelectedNode();
 
                     if (node instanceof FileNode) {
-                      final File file = ((FileNode) node).getFile(); if (file.isFile()) {
+                      final File file = ((FileNode) node).getFilePath(); if (file.isFile()) {
                         tablePanel.setFile(file);
                       }
                     } else {
@@ -178,6 +175,21 @@ public class Viewer extends WebFrame {
                   }
                 }
               }
+            });
+            tableTree.addTreeWillExpandListener(new TreeWillExpandListener() {
+              @Override
+              public void treeWillExpand(TreeExpansionEvent evt) throws ExpandVetoException {
+                if (evt.getPath().getLastPathComponent() instanceof FileTreeModel.FilePathNode) {
+                  try {
+                    ((FileTreeModel.FilePathNode) evt.getPath().getLastPathComponent()).populate();
+                  } catch (IOException e) {
+                    e.printStackTrace();
+                  }
+                }
+              }
+
+              @Override
+              public void treeWillCollapse(TreeExpansionEvent evt) throws ExpandVetoException { }
             });
             tableTree.setModel(new FileTreeModel());
             tableTree.setRolloverSelectionEnabled(true);
@@ -241,16 +253,21 @@ public class Viewer extends WebFrame {
 
             card.add(tablePanel = new TablePanel(null), "0");
 
-            tablePanel.addPropertyChangeListener("file", new PropertyChangeListener() {
-              @Override
-              public void propertyChange(PropertyChangeEvent evt) {
-                final File file = (File) evt.getNewValue();
+            tablePanel.addPropertyChangeListener("file", evt -> {
+              final File file = (File) evt.getNewValue();
 
-                title.setText(file.getName());
-
-                languageBox.setSelectedItem(tablePanel.getTableModel().getFile().getLanguage());
-                versionBox.setSelectedItem(tablePanel.getTableModel().getFile().getVersion());
+              try {
+                final XBaseFile xBaseFile = new XBase().openReadonly(file); try {
+                  title.setText(String.format("%s (%d records)", file.getName(), xBaseFile.rowCount()));
+                } finally {
+                  xBaseFile.closeQuietly();
+                }
+              } catch (IOException e) {
+                e.printStackTrace();
               }
+
+              languageBox.setSelectedItem(tablePanel.getTableModel().getFile().getLanguage());
+              versionBox.setSelectedItem(tablePanel.getTableModel().getFile().getVersion());
             });
           }
           right.add(card, new CC().push().grow());
@@ -277,11 +294,8 @@ public class Viewer extends WebFrame {
       languageBox = new WebComboBox(new Language[] {
         Language.DosEastEurope, Language.DosMultilingual, Language.DosUSA, Language.WinANSI, Language.WinEastEurope
       });
-      languageBox.addActionListener(new ActionListener() {
-        @Override
-        public void actionPerformed(ActionEvent evt) {
-          tablePanel.setLanguage((Language) languageBox.getSelectedItem());
-        }
+      languageBox.addActionListener(evt -> {
+        tablePanel.setLanguage((Language) languageBox.getSelectedItem());
       });
       languageBox.setFocusable(false);
       languageBox.getInsets().set(0, 5, 0, 5);
@@ -297,25 +311,21 @@ public class Viewer extends WebFrame {
     pack();
 
     //<editor-fold desc="Setup">
-    EventQueue.invokeLater(new Runnable() {
-      @Override
-      public void run() {
-        final File selectedPath = new File(folder);
-
+    EventQueue.invokeLater(() -> {
+      final File selectedPath = new File(folder); {
         pathField.setSelectedPath(selectedPath);
 
         synchronized (tableTree.getTreeLock()) {
           ((FileTreeModel) tableTree.getModel()).setRootFolder(
             selectedPath
           );
-          tableTree.expandAll();
         }
       }
     });
     //</editor-fold>
   }
 
-  static GroupPanel groupPanel(Component... components) {
+  private static GroupPanel groupPanel(Component... components) {
     final GroupPanel panel = new GroupPanel(
       false, components
     );
@@ -325,15 +335,12 @@ public class Viewer extends WebFrame {
   }
 
   public static void main(String[] args) {
-    EventQueue.invokeLater(new Runnable() {
-      @Override
-      public void run() {
-        WebLookAndFeel.install(); new Viewer().setVisible(true);
-      }
+    EventQueue.invokeLater(() -> {
+      WebLookAndFeel.install(); new Viewer().setVisible(true);
     });
   }
 
-  static class TablePanel extends WebPanel {
+  private static class TablePanel extends WebPanel {
     private static final long serialVersionUID = -1795722861648055983L;
 
     private File file;
@@ -366,24 +373,21 @@ public class Viewer extends WebFrame {
               return label;
             }
           });
-          table.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
-            @Override
-            public void valueChanged(ListSelectionEvent evt) {
-              if (!(evt.getValueIsAdjusting() || table.getSelectionModel().isSelectionEmpty())) {
-                final HashMap<String, String> values = new HashMap<String, String>(memoFields.size());
+          table.getSelectionModel().addListSelectionListener(evt -> {
+            if (!(evt.getValueIsAdjusting() || table.getSelectionModel().isSelectionEmpty())) {
+              final HashMap<String, String> values = new HashMap<String, String>(memoFields.size());
 
-                for (String field : memoFields) {
-                  for (int i = 0; i < getTableModel().getColumnCount(); i++) {
-                    if (Objects.equals(field, getTableModel().getColumnName(i))) {
-                      final String value = (String) getTableModel().getValueAt(table.getSelectedRow(), i);
+              for (String field : memoFields) {
+                for (int i = 0; i < getTableModel().getColumnCount(); i++) {
+                  if (Objects.equals(field, getTableModel().getColumnName(i))) {
+                    final String value = (String) getTableModel().getValueAt(table.getSelectedRow(), i);
 
-                      values.put(field, (value == null) ? Strings.EMPTY : value);
-                    }
+                    values.put(field, (value == null) ? Strings.EMPTY : value);
                   }
                 }
-
-                memoPanel.setFieldValues(values);
               }
+
+              memoPanel.setFieldValues(values);
             }
           });
           table.getColumnModel().addColumnModelListener(new TableColumnModelListener() {
@@ -425,14 +429,11 @@ public class Viewer extends WebFrame {
 
           table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
 
-          if (file != null) EventQueue.invokeLater(new Runnable() {
-            @Override
-            public void run() {
-              try {
-                table.setModel(new XBaseTableModel(file).open());
-              } catch (IOException e) {
-                e.printStackTrace();
-              }
+          if (file != null) EventQueue.invokeLater(() -> {
+            try {
+              table.setModel(new XBaseTableModel(file).open());
+            } catch (IOException e) {
+              e.printStackTrace();
             }
           });
         }
@@ -447,18 +448,15 @@ public class Viewer extends WebFrame {
       }
       add(splitPane, BorderLayout.CENTER);
 
-      addHierarchyListener(new HierarchyListener() {
-        @Override
-        public void hierarchyChanged(HierarchyEvent evt) {
-          if ((evt.getID() == HierarchyEvent.HIERARCHY_CHANGED) && ((evt.getChangeFlags() & HierarchyEvent.DISPLAYABILITY_CHANGED) != 0)) {
-            EventQueue.invokeLater(new Runnable() {
-              @Override
-              public void run() {
-                splitPane.setDividerLocation(0.6d);
-                splitPane.setResizeWeight(1.0d);
-              }
-            });
-          }
+      addHierarchyListener(evt -> {
+        if ((evt.getID() == HierarchyEvent.HIERARCHY_CHANGED) && ((evt.getChangeFlags() & HierarchyEvent.DISPLAYABILITY_CHANGED) != 0)) {
+          EventQueue.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+              splitPane.setDividerLocation(0.6d);
+              splitPane.setResizeWeight(1.0d);
+            }
+          });
         }
       });
     }
@@ -473,28 +471,25 @@ public class Viewer extends WebFrame {
       if (!Objects.equals(oldValue, file)) {
         this.file = file;
 
-        EventQueue.invokeLater(new Runnable() {
-          @Override
-          public void run() {
-            synchronized (table.getTreeLock()) {
-              destroy();
+        EventQueue.invokeLater(() -> {
+          synchronized (table.getTreeLock()) {
+            destroy();
 
-              try {
-                table.setModel(new XBaseTableModel(file).open());
+            try {
+              table.setModel(new XBaseTableModel(file).open());
 
-                memoFields = new ArrayList<String>();
+              memoFields = new ArrayList<>();
 
-                for (Field<?> field : getTableModel().getFile().getFields()) {
-                  if (field.getType() == 'M') {
-                    memoFields.add(field.getName());
-                  }
+              for (Field<?> field : getTableModel().getFile().getFields()) {
+                if (field.getType() == 'M') {
+                  memoFields.add(field.getName());
                 }
-                memoPanel.setFieldList(memoFields);
-
-                firePropertyChange("file", oldValue, file);
-              } catch (IOException e) {
-                e.printStackTrace();
               }
+              memoPanel.setFieldList(memoFields);
+
+              firePropertyChange("file", oldValue, file);
+            } catch (IOException e) {
+              e.printStackTrace();
             }
           }
         });
@@ -528,7 +523,7 @@ public class Viewer extends WebFrame {
     }
   }
 
-  static class MemoPanel extends WebPanel {
+  private static class MemoPanel extends WebPanel {
     private static final long serialVersionUID = 7880669061253702737L;
 
     private WebComboBox fieldBox;
@@ -541,14 +536,11 @@ public class Viewer extends WebFrame {
       ));
 
       this.fieldBox = new WebComboBox(); {
-        fieldBox.addItemListener(new ItemListener() {
-          @Override
-          public void itemStateChanged(ItemEvent evt) {
-            if (evt.getStateChange() == ItemEvent.SELECTED) {
-              editorPane.setText(values.get(evt.getItem()));
-            } else {
-              editorPane.setText(null);
-            }
+        fieldBox.addItemListener(evt -> {
+          if (evt.getStateChange() == ItemEvent.SELECTED) {
+            editorPane.setText(values.get(evt.getItem()));
+          } else {
+            editorPane.setText(null);
           }
         });
         fieldBox.setMinimumWidth(100);
@@ -561,7 +553,7 @@ public class Viewer extends WebFrame {
     }
 
     public void setFieldList(List<String> list) {
-      fieldBox.setModel(new ListComboBoxModel<String>(list)); fieldBox.setSelectedIndex(-1);
+      fieldBox.setModel(new ListComboBoxModel<>(list)); fieldBox.setSelectedIndex(-1);
 
       fieldBox.setEnabled(!list.isEmpty());
       editorPane.setEnabled(!list.isEmpty());

@@ -16,64 +16,39 @@
 
 package org.yasas.xbase4j.viewer.tree;
 
-import com.alee.extended.tree.*;
-import com.alee.utils.*;
-import com.alee.utils.filefilter.*;
-import org.yasas.xbase4j.viewer.*;
-
 import javax.swing.tree.*;
 import java.io.*;
 import java.util.*;
-import java.util.concurrent.atomic.*;
 
 public class RootNode extends DefaultMutableTreeNode {
-  private static final long serialVersionUID = -8125461868719934393L;
+  private static final long serialVersionUID = 4998284861710573572L;
 
-  public RootNode() {
+  RootNode() {
     super(null, true);
   }
 
   //<editor-fold desc="Properties">
-  public File getFolder() {
+  public File getFilePath() {
     return (File) getUserObject();
   }
 
-  public void setFolder(File folder) {
-    setUserObject(folder);
+  public void setFilePath(File filePath) {
+    setUserObject(filePath);
   }
   //</editor-fold>
 
   @Override
   public void setUserObject(Object userObject) {
     if (!Objects.equals(getUserObject(), userObject)) {
-      super.setUserObject(userObject);
-
-      removeAllChildren();
-
-      if (userObject != null) {
-        final File[] files = FileUtils.listFiles((File) userObject, new CustomFileFilter(Viewer.Utils.icon("database_table.png"), "X-Base files") {
-          @Override
-          public boolean accept(File file) {
-            final String name = file.getName().toLowerCase(); {
-              return file.isDirectory() || (file.isFile() && name.endsWith(".dbf"));
+      super.setUserObject(userObject); removeAllChildren(); {
+        if (userObject != null) {
+          try {
+            for (File file : FileTreeModel.listFilesSorted((File) userObject)) {
+              add(new FileNode(file, file.isDirectory()));
             }
+          } catch (IOException e) {
+            e.printStackTrace();
           }
-        });
-        Arrays.sort(files, new Comparator<File>() {
-          @Override
-          public int compare(File o1, File o2) {
-            if (o1.isDirectory() && o2.isFile()) {
-              return -1;
-            }
-            if (o1.isFile() && o2.isDirectory()) {
-              return -1;
-            }
-            return o1.getName().toLowerCase().compareTo(o2.getName().toLowerCase());
-          }
-        });
-
-        for (File file : files) {
-          add(new FileNode(file, file.isDirectory()));
         }
       }
     }
